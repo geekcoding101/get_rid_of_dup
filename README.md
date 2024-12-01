@@ -90,7 +90,7 @@ These arguments apply to all commands:
 - `--skip-existing`: Skip checksum calculations for already-processed files. (default: False).
 - `--max-width`: Maximum column width for displaying results (default: 128).
 - `--verbose`: Enable verbose output (default: False).
-- `--output-file`: Save duplicate files table to a file (default: output.txt).
+- `--output-file`: Save duplicate files table to a file (default: dupfiles.txt).
 - `--print-table`: Print the duplicate files table to the console (default: False).
 
 ## Command-Specific Options:
@@ -122,7 +122,7 @@ python get_rid_of_dup.py checksum --base-dir /path/to/base_dir --update-checksum
 
 ### Save Duplicate Files Table to a File
 
-```python get_rid_of_dup.py search --base-dir /path/to/base_dir --output-file duplicates_table.txt /path/to/other_dir```
+```python get_rid_of_dup.py search --base-dir /path/to/base_dir --output-file dupfiles.txt /path/to/other_dir```
 
 ### Skip Existing Checksums with Verbose Output
 
