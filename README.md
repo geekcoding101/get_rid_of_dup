@@ -11,6 +11,14 @@
 
 ---
 
+## 📦 Installation
+I am using `Python 3.12.6`, it should work for all `Python 3+` as long as the additional packages installed successfully.
+
+Run the following command to install the dependencies:
+
+```pip install xxhash termcolor texttable```
+
+
 ## 📜 Commands and Usage
 
 ### 🔍 `search` Command
