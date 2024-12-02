@@ -7,7 +7,7 @@
 ## 🚀 Features
 - **`search`**: Locate duplicate files without saving checksum information. This is usually for quick test.
 - **`checksum`**: Everything in `search`, plus saving checksums into file. This is usually your first step.
-- **`delete`**: Remove duplicate files based on checksum data, this. This is your last step.
+- **`delete`**: Remove duplicate files based on checksum data (Default reading from checksums.txt). This is your last step.
 
 ---
 
@@ -18,6 +18,30 @@ Run the following command to install the dependencies:
 
 ```pip install xxhash termcolor texttable```
 
+## Performance
+
+The most time consuming is checksum command. 
+
+But with `xxhash`, it's fast enough from my perspectiev.
+
+I have around 30k files to scan, including many larger than 20MB images, it took just less than 1min to finish!
+
+Another good thing of this script is that it supports to read checksums.txt file if specified `--skip-existing`.
+
+Let's say you have scanned 10k files and saved in checksums.txt.
+
+Then you added another 10k files, as long as you're in the same path, it will skip calculating whatever already in checksums.txt.
+
+Below is my testing data:
+
+- When first time to scan, it took around 84.46s:
+![performance-01](asset/img/performance-01.webp)
+- When second time to scan without adding any new file, it took around 
+![performance-02](asset/img/performance-02.webp)
+- If I deleted most checksums from `checksums.txt`, it took around . And we can see it's calculating only the missing ones. So it did skip existing files which already have checksums in `checksums.txt`.
+![performance-03](asset/img/performance-03.webp)
+
+Please note: `--skip-existing` is off by default, you have to specify it manaully.
 
 ## 📜 Commands and Usage
 

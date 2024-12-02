@@ -19,6 +19,7 @@ Modules are designed for clarity and reusability, making it easy to extend funct
 """
 
 import argparse
+import fnmatch
 import os
 import time
 from collections import defaultdict
@@ -107,6 +108,13 @@ def parse_arguments():
         help="File to save the duplicate files table. Default: dupfiles.txt",
     )
 
+    common_parser.add_argument(
+        "--exclude",
+        nargs="*",
+        default=[],
+        help='Exclude files matching these patterns (e.g., "*.jpg", "a*.png"). Supports multiple patterns.',
+    )
+
     # Subparser for the 'search' command
     search_parser = subparsers.add_parser(
         "search",
@@ -193,13 +201,20 @@ def compute_xxhash64(file_path):
     return hasher.hexdigest()
 
 
-def get_all_files(path):
+def get_all_files(path, exclude_patterns=[]):
     """
-    Recursively get all files under the given path.
+    Recursively get all files under the given path, excluding files that match the exclude patterns.
     """
     file_list = []
     for root, _, files in os.walk(path):
         for file in files:
+            exclude = False
+            for pattern in exclude_patterns:
+                if fnmatch.fnmatch(file, pattern):
+                    exclude = True
+                    break
+            if exclude:
+                continue
             file_path = os.path.join(root, file)
             file_list.append(file_path)
     return file_list
@@ -222,13 +237,15 @@ def load_existing_checksums(checksum_file):
     return existing_checksums
 
 
-def calculate_checksums(base_dir, other_dir, checksum_file, skip_existing, verbose):
+def calculate_checksums(
+    base_dir, other_dir, checksum_file, skip_existing, verbose, exclude_patterns
+):
     """
     Calculate checksums for files in base_dir and other_dir.
     If skip_existing is True, skip files already present in checksum_file.
     """
     base_checksums = {}
-    other_checksums = defaultdict(list)
+    other_checksums = {}
     existing_checksums = {}
 
     # Load existing checksums if skip_existing is True
@@ -236,7 +253,7 @@ def calculate_checksums(base_dir, other_dir, checksum_file, skip_existing, verbo
         existing_checksums = load_existing_checksums(checksum_file)
 
     # Get all files in base_dir
-    base_files = get_all_files(base_dir)
+    base_files = get_all_files(base_dir, exclude_patterns)
     total_base_files = len(base_files)
     print(f"📁 Processing files in base directory '{base_dir}': {total_base_files}")
 
@@ -259,9 +276,11 @@ def calculate_checksums(base_dir, other_dir, checksum_file, skip_existing, verbo
         base_checksums[checksum] = {"path": rel_path, "abs_path": abs_path}
 
     # Get all files in other_dir
-    other_files = get_all_files(other_dir)
+    other_files = get_all_files(other_dir, exclude_patterns)
     total_other_files = len(other_files)
-    print(f"📁 Processing files in other directory '{other_dir}': {total_other_files}")
+    print(
+        f"\n📁 Processing files in other directory '{other_dir}': {total_other_files}"
+    )
 
     # Calculate checksums for other_dir files
     for idx, file_path in enumerate(other_files, start=1):
@@ -279,8 +298,8 @@ def calculate_checksums(base_dir, other_dir, checksum_file, skip_existing, verbo
                 print(f"⏳ Processing other ({idx}/{total_other_files}): {abs_path}")
             checksum = compute_xxhash64(file_path)
 
-        if checksum in base_checksums:
-            other_checksums[checksum].append({"path": rel_path, "abs_path": abs_path})
+        # Save checksum for all files in other_dir
+        other_checksums[checksum] = {"path": rel_path, "abs_path": abs_path}
 
     return base_checksums, other_checksums, total_base_files, total_other_files
 
@@ -295,9 +314,8 @@ def save_checksums(base_checksums, other_checksums, checksum_file):
             for checksum, info in base_checksums.items():
                 f.write(f"BASE\t{checksum}\t{info['path']}\n")
             # Save other checksums
-            for checksum, files in other_checksums.items():
-                for file_info in files:
-                    f.write(f"OTHER\t{checksum}\t{file_info['path']}\n")
+            for checksum, info in other_checksums.items():
+                f.write(f"OTHER\t{checksum}\t{info['path']}\n")
         print(colored(f"✅ Checksums saved to {checksum_file}", "green"))
     except Exception as e:
         print(colored(f"❌ Error saving checksums to {checksum_file}: {e}", "red"))
@@ -332,16 +350,16 @@ def summarize_duplicates(base_checksums, other_checksums, base_dir, other_dir):
     Summarize duplicate files and count files under each directory.
     """
     duplicates = {}
-    for checksum, files in other_checksums.items():
+    for checksum, info in other_checksums.items():
         if checksum in base_checksums:
             duplicates[checksum] = {
                 "base": base_checksums[checksum],
-                "duplicates": files,
+                "duplicates": [info],  # Wrap in a list for consistency
             }
 
     # Count total files
     total_base_files = len(base_checksums)
-    total_other_files = sum(len(info["duplicates"]) for info in duplicates.values())
+    total_other_files = len(other_checksums)
 
     return duplicates, total_base_files, total_other_files
 
@@ -367,12 +385,21 @@ def display_summary(
     )
     print(
         colored(
-            f"✅ Total duplicate files in directory '{other_dir}': {total_other_files}",
+            f"✅ Total files in directory '{other_dir}': {total_other_files}",
             "green",
         )
     )
+
     total_duplicates = sum(len(info["duplicates"]) for info in duplicates.values())
     print(colored(f"⚠️  Total duplicate files found: {total_duplicates}", "yellow"))
+
+    total_unique_files_in_other_dir = total_other_files - total_duplicates
+    print(
+        colored(
+            f"📁 Total unique files in '{other_dir}': {total_unique_files_in_other_dir}",
+            "green",
+        )
+    )
 
     # Prepare data for tabular display
     table_data = []
@@ -626,6 +653,7 @@ def main():
                 args.checksum_file,
                 args.skip_existing,
                 args.verbose,
+                args.exclude,
             )
         )
 
