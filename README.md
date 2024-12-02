@@ -2,12 +2,42 @@
 
 `get_rid_of_dup.py` is a command-line tool designed to find and remove duplicate files efficiently using checksum comparisons. Whether you're searching, managing, or deleting duplicate files, this script has got you covered! 💾
 
+This script has two modes:
+
+**Mode 1: Single Directory Duplicate Detection**
+
+One command is enough, it will identify all duplicates and ask confirmation to delete: 
+
+```
+python get_rid_of_dup.py dedup --base-dir ./comp --max-width 50 --verbose --exclude "*.DS_Store"
+```
+
+**Mode 2: Cross-Directory Duplicate Detection**
+
+Two steps required:
+
+1. Generate checksums.txt by using `checksum` option:
+
+```
+python get_rid_of_dup.py checksum --base-dir ./base ./comp --max-width 50   --verbose --exclude "*.DS_Store"
+```
+
+2. Based on `checksums.txt` which generated from above, deleting files:
+
+```
+python get_rid_of_dup.py delete --base-dir ./base ./comp --max-width 50   --verbose --exclude "*.DS_Store"
+```
+
+
 ---
 
 ## 🚀 Features
+
+Essentially, both modes are doing the same thing as below:
+
 - **`search`**: Locate duplicate files without saving checksum information. This is usually for quick test.
-- **`checksum`**: Everything in `search`, plus saving checksums into file. This is usually your first step.
-- **`delete`**: Remove duplicate files based on checksum data (Default reading from checksums.txt). This is your last step.
+- **`checksum`**: Everything in `search`, plus saving checksums into file. This is the first step in **Mode 2: Cross-Directory Duplicate Detection**.
+- **`delete`**: Remove duplicate files based on checksum data (Default reading from checksums.txt). This is the second step in **Mode 2: Cross-Directory Duplicate Detection**.
 
 ---
 
@@ -18,7 +48,15 @@ Run the following command to install the dependencies:
 
 ```pip install xxhash termcolor texttable```
 
-## Performance
+## Considerations
+
+### Determine which file as the original file
+
+When hit duplicates, the script will use the file whose file name is shorter as the original file and mark others as the target to be deleted.
+
+The reason why I designed it like this is that, I found usually the duplicates have names like "IMG_5808 (2).JPG". So only the original file has "IMG_5808.JPG" as file name which is shorter.
+
+### Performance
 
 The most time consuming is checksum command. 
 
@@ -193,7 +231,9 @@ python get_rid_of_dup.py delete  --base-dir ./test ./others
 
 ### Skip Existing Checksums with Verbose Output
 
-```python get_rid_of_dup.py checksum --base-dir /path/to/base_dir --skip-existing --verbose /path/to/other_dir```
+```
+python get_rid_of_dup.py checksum --base-dir /path/to/base_dir --skip-existing --verbose /path/to/other_dir
+```
 
 ---
 

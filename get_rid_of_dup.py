@@ -691,6 +691,7 @@ def calculate_checksums_single_dir(
     """
     Calculate checksums for files within a single directory to identify duplicates.
     If skip_existing is True, skip files already present in checksum_file.
+    The file with the shortest filename is considered the original.
     """
     checksums = {}
     existing_checksums = {}
@@ -721,9 +722,26 @@ def calculate_checksums_single_dir(
             checksum = compute_xxhash64(file_path)
 
         if checksum in checksums:
-            checksums[checksum]["duplicates"].append(
-                {"path": rel_path, "abs_path": abs_path}
+            # Compare the length of filenames to decide the original
+            # Usually, duplicates might have names like "IMG_5808 (2).JPG"
+            # So I assume it's good to have the shorter name as the original file in an automation process.
+            current_original = checksums[checksum]["original"]
+            current_original_name_length = len(
+                os.path.basename(current_original["path"])
             )
+            new_file_name_length = len(os.path.basename(rel_path))
+            if new_file_name_length < current_original_name_length:
+                # Current file has shorter filename, update original
+                checksums[checksum]["duplicates"].append(current_original)
+                checksums[checksum]["original"] = {
+                    "path": rel_path,
+                    "abs_path": abs_path,
+                }
+            else:
+                # Current file is a duplicate
+                checksums[checksum]["duplicates"].append(
+                    {"path": rel_path, "abs_path": abs_path}
+                )
         else:
             checksums[checksum] = {
                 "original": {"path": rel_path, "abs_path": abs_path},
