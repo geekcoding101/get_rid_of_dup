@@ -6,7 +6,9 @@ This script has two modes:
 
 **Mode 1: Single Directory Duplicate Detection**
 
-One command is enough, it will identify all duplicates and ask confirmation to delete: 
+In this mode, it will identify all duplicates within the same folder and ask confirmation to delete.
+
+One command is enough:
 
 ```
 python get_rid_of_dup.py dedup --base-dir ./comp --max-width 50 --verbose --exclude "*.DS_Store"
@@ -14,15 +16,17 @@ python get_rid_of_dup.py dedup --base-dir ./comp --max-width 50 --verbose --excl
 
 **Mode 2: Cross-Directory Duplicate Detection**
 
+As the name suggested, it takes two folders as input. Use one as the base directory, means all duplicates will come out from the other directory.
+
 Two steps required:
 
-1. Generate checksums.txt by using `checksum` option:
+1. Generate checksums.txt by using `checksum` option, `./comp ` is the folder duplicates will be addressed and deleted:
 
 ```
 python get_rid_of_dup.py checksum --base-dir ./base ./comp --max-width 50   --verbose --exclude "*.DS_Store"
 ```
 
-2. Based on `checksums.txt` which generated from above, deleting files:
+2. Based on `checksums.txt` (in current folder) which generated from above, deleting files:
 
 ```
 python get_rid_of_dup.py delete --base-dir ./base ./comp --max-width 50   --verbose --exclude "*.DS_Store"
