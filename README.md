@@ -56,9 +56,11 @@ Run the following command to install the dependencies:
 
 ### Determine which file as the original file
 
-When hit duplicates, the script will use the file whose file name is shorter as the original file and mark others as the target to be deleted.
+In **Mode 1: Single Directory Duplicate Detection**, when hit duplicates, the script will use the file whose file name is shorter as the original file and mark others as the target to be deleted.
 
 The reason why I designed it like this is that, I found usually the duplicates have names like "IMG_5808 (2).JPG". So only the original file has "IMG_5808.JPG" as file name which is shorter.
+
+No need to have such logic in **Mode 2: Cross-Directory Duplicate Detection** because it is designed to use files in `--base-dir` as the original files.
 
 ### Performance
 
