@@ -5,9 +5,9 @@
 ---
 
 ## 🚀 Features
-- **`search`**: Locate duplicate files without saving checksum information.
-- **`checksum`**: Everything in `search`, plus saving checksums into file.
-- **`delete`**: Remove duplicate files based on checksum data.
+- **`search`**: Locate duplicate files without saving checksum information. This is usually for quick test.
+- **`checksum`**: Everything in `search`, plus saving checksums into file. This is usually your first step.
+- **`delete`**: Remove duplicate files based on checksum data, this. This is your last step.
 
 ---
 
@@ -30,7 +30,7 @@ python get_rid_of_dup.py search [options] <path>
 **Example:**
 
 ```
-python get_rid_of_dup.py search --base-dir /path/to/base_dir /path/to/other_dir
+python get_rid_of_dup.py search --base-dir ./test ./others --max-width 50
 ```
 
 ---
@@ -53,7 +53,7 @@ python get_rid_of_dup.py checksum [options] <path>
 **Example:**
 
 ```
-python get_rid_of_dup.py checksum --base-dir /path/to/base_dir --update-checksum-file /path/to/other_dir
+python get_rid_of_dup.py checksum --no-update-checksum-file  --base-dir ./test  --max-width 50  ./others
 ```
 
 ---
@@ -77,7 +77,7 @@ python get_rid_of_dup.py delete [options] <path>
 **Example:**
 
 ```
-python get_rid_of_dup.py delete --base-dir /path/to/base_dir --checksum-file checksums.txt --confirm /path/to/other_dir
+python get_rid_of_dup.py delete  --base-dir ./test ./others
 ```
 
 ---
@@ -86,43 +86,78 @@ python get_rid_of_dup.py delete --base-dir /path/to/base_dir --checksum-file che
 These arguments apply to all commands:
 
 - `--base-dir`: **(Required)** Base directory containing original files.
-- `--checksum-file`: File to save or read checksum data (default: `checksums.txt`).
+- `--checksum-file`: File to save or read checksum data from (default: `checksums.txt`).
 - `--skip-existing`: Skip checksum calculations for already-processed files. (default: False).
+- `--no-skip-existing`: The opposite of `--skip-existing`.
 - `--max-width`: Maximum column width for displaying results (default: 128).
 - `--verbose`: Enable verbose output (default: False).
+- `--no-verbose`: The opposite of `--verbose`.
 - `--output-file`: Save duplicate files table to a file (default: dupfiles.txt).
 - `--print-table`: Print the duplicate files table to the console (default: False).
+- `--no-print-table`: The opposite of `--print-table`.
 
 ## Command-Specific Options:
 - `checksum`: 
-  - `--update-checksum-file`: Add new entries to checksum file.
+  - `--update-checksum-file`: Instruct to generate checksums file. Default filename is `checksums.txt`.
 - `delete`: 
   - `--sleep-time`: Set delay between deletions (default: 1).
   - `--confirm`: Enable confirmation prompts (default: True).
+  - `--no-confirm`: The opposite of `--confirm`
   - `--list-next`: Set number of files to preview before confirmation (default: 5).
 
 ---
 
 ## 💡 Examples
-### Search for Duplicates Without Saving Checksums
+### Search for Duplicates Without Saving Checksums into File
 
 ```
-python get_rid_of_dup.py search --base-dir /path/to/base_dir /path/to/other_dir
+python get_rid_of_dup.py search --base-dir ./test ./others --max-width 50
 ```
 
-### Calculate and Save Checksums
+![search-basic-usage](asset/img/search-01.webp)
+
+The duplicate files table:
+
+![dupfiles.txt.webp](asset/img/dupfiles.txt.webp)
 
 ```
-python get_rid_of_dup.py checksum --base-dir /path/to/base_dir --update-checksum-file /path/to/other_dir
+python get_rid_of_dup.py search --base-dir ./test ./others --max-width 50 --verbose
 ```
+
+![search-basic-usage](asset/img/search-02-with-verbose.webp)
+
+### Search for Duplicates via Checksum and Save into File
+
+```
+python get_rid_of_dup.py checksum --base-dir ./test ./others --max-width 50
+```
+
+![checksum-01-save-checksum-default-behavior](asset/img/checksum-01-save-checksum-default-behavior.webp)
+
+
+```
+python get_rid_of_dup.py checksum --no-update-checksum-file --base-dir ./test ./others --max-width 50
+```
+
+![checksum-02-not-save-checksum-same-as-search-command](asset/img/checksum-02-not-save-checksum-same-as-search-command.webp)
+
 
 ### Delete Duplicates with Confirmation
 
-```python get_rid_of_dup.py delete --base-dir /path/to/base_dir --confirm --list-next 10 /path/to/other_dir```
+```
+python get_rid_of_dup.py delete  --base-dir ./test ./others
+```
 
-### Save Duplicate Files Table to a File
+![delete-01](asset/img/delete-01.webp)
 
-```python get_rid_of_dup.py search --base-dir /path/to/base_dir --output-file dupfiles.txt /path/to/other_dir```
+When missing checksums.txt:
+
+```
+python get_rid_of_dup.py delete  --base-dir ./test ./others
+```
+
+![delete-02](asset/img/delete-02.webp)
+
 
 ### Skip Existing Checksums with Verbose Output
 
