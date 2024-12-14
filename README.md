@@ -2,7 +2,7 @@
 
 `get_rid_of_dup.py` is a command-line tool designed to find and remove duplicate files efficiently using checksum comparisons. Whether you're searching, managing, or deleting duplicate files, this script has got you covered! 💾
 
-This script has two modes:
+This script has three modes:
 
 **Mode 1: Single Directory Duplicate Deletion**
 
@@ -22,18 +22,45 @@ As the name suggested, it takes two folders as input. Use one as the base direct
 
 Two steps required:
 
-1. Generate checksums.txt by using `checksum` option, `./comp ` is the folder duplicates will be addressed and deleted:
+1. Generate checksums.txt for files from `base-dir` and `./comp` (relative path of the other folder, you can specify your folder path) by using `checksum` option, `./comp ` is the folder duplicates will be addressed and deleted:
 
 ```
 python get_rid_of_dup.py checksum --base-dir ./base ./comp --max-width 50   --verbose --exclude "*.DS_Store"
 ```
 
-2. Based on `checksums.txt` (in current folder) which generated from above, deleting files:
+This command will also generate a file specified by `--output-file` (if not specified, name is `dupfiles.txt`). This is not needed in later step, it's just for your references.
+
+1. Based on `checksums.txt` (in current folder) which generated from above, guide you to delete duplicates:
 
 ```
 python get_rid_of_dup.py delete --base-dir ./base ./comp --max-width 50   --verbose --exclude "*.DS_Store"
 ```
 
+**Mode 3: Detecting duplicates by giving checksum of base directory**
+
+The use case is for this scenario:
+
+My laptop has 300GB free space, I want to download 280GB photos which will be used as base directory and 230GB photos where I think it will have duplicates. The free space is not enough to hold all of them. 
+
+So I can just download 280GB and use the script to generate checksums.txt, then delete the 280GB files, then doanlowd the 230GB files, then script can take the given checksum file at `--base-checksum-file`, and generate a complete checksums.txt based on it and 230GB files.
+
+1. Generate checksum file `./checksums-for-test-12132024-211933.txt`:
+
+```
+python get_rid_of_dup.py checksum --generate-checksum-only --base-dir ./test
+```
+
+2. I can delete files in ./test now, then run below command to generate `checksums.txt` which have all checksums:
+
+```
+python get_rid_of_dup.py checksum --base-checksum-file ./checksums-for-test-12132024-211933.txt ./others
+```
+
+3. Now we can use *Mode 2* commands to delete duplicates. Needs to have a folder exists and give it to `--base-dir`, no files needes under the folder:
+
+```
+python get_rid_of_dup.py delete  --base-dir ./test ./others --no-confirm --sleep-time 5
+```
 
 ---
 
