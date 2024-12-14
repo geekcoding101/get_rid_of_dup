@@ -294,7 +294,7 @@ def calculate_checksums(
     If skip_existing is True, skip files already present in checksum_file.
     """
     base_checksums = {}
-    other_checksums = {}
+    other_checksums = defaultdict(list)
     existing_checksums = {}
 
     # Load existing checksums if skip_existing is True
@@ -348,7 +348,13 @@ def calculate_checksums(
             checksum = compute_xxhash64(file_path)
 
         # Save checksum for all files in other_dir
-        other_checksums[checksum] = {"path": rel_path, "abs_path": abs_path}
+        # Example:
+        # other_checksums = {
+        #   "<checksum1>": [ {"path": "file1", "abs_path": "/path/to/file1"} ],
+        #   "<checksum2>": [ {"path": "file2", "abs_path": "/path/to/file2"}, {"path": "file3", "abs_path": "/path/to/file3"} ]
+        # }
+
+        other_checksums[checksum].append({"path": rel_path, "abs_path": abs_path})
 
     return base_checksums, other_checksums, total_base_files, total_other_files
 
@@ -394,7 +400,7 @@ def load_checksums(checksum_file):
     return base_checksums, other_checksums
 
 
-def summarize_duplicates(base_checksums, other_checksums, base_dir, other_dir):
+def summarize_duplicates(base_checksums, other_checksums):
     """
     Summarize duplicate files and count files under each directory.
     """
@@ -1096,9 +1102,7 @@ def main():
             )
         )
 
-        duplicates, _, _ = summarize_duplicates(
-            base_checksums, other_checksums, base_dir, target_dir
-        )
+        duplicates, _, _ = summarize_duplicates(base_checksums, other_checksums)
 
         if args.command == "checksum":
             if args.update_checksum_file:
