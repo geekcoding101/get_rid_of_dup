@@ -38,7 +38,7 @@ def parse_arguments():
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    # Common arguments (no longer force --base-dir as required here)
+    # Common arguments
     common_parser = argparse.ArgumentParser(add_help=False)
     common_parser.add_argument(
         "--base-dir", help="Base directory containing files to process"
@@ -1259,7 +1259,7 @@ def main():
         # If not generate-checksum-only
         # We have two modes:
         # 1. If --base-checksum-file is provided, we skip base_dir scanning
-        # 2. Else, we need base_dir and path
+        # 2. Else, we need base_dir and path for other folder
 
         if args.base_checksum_file:
             # Load base checksums from file

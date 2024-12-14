@@ -40,9 +40,9 @@ python get_rid_of_dup.py delete --base-dir ./base ./comp --max-width 50   --verb
 
 The use case is for this scenario:
 
-My laptop has 300GB free space, I want to download 280GB photos which will be used as base directory and 230GB photos where I think it will have duplicates. The free space is not enough to hold all of them. 
+My laptop has 300GB free space, I want to download 280GB photos which will be used as base directory and 230GB photos where I think it will have duplicates. The free space is not enough to hold all of them.
 
-So I can just download 280GB and use the script to generate checksums.txt, then delete the 280GB files, then doanlowd the 230GB files, then script can take the given checksum file at `--base-checksum-file`, and generate a complete checksums.txt based on it and 230GB files.
+So I can just download 280GB and use the script to generate checksums.txt, then delete the 280GB files, then download the 230GB files, then script can take the given checksum file at `--base-checksum-file`, and generate a complete checksums.txt based on it and 230GB files.
 
 1. Generate checksum file `./checksums-for-test-12132024-211933.txt`:
 
@@ -79,7 +79,9 @@ I am using `Python 3.12.6`, it should work for all `Python 3+` as long as the ad
 
 Run the following command to install the dependencies:
 
-```pip install xxhash termcolor texttable```
+```
+pip install xxhash termcolor texttable
+```
 
 ## Considerations
 
@@ -93,7 +95,7 @@ No need to have such logic in **Mode 2: Cross-Directory Duplicate Detection** be
 
 ### Performance
 
-The most time consuming is checksum command. 
+The most time consuming is checksum command.
 
 But with `xxhash`, it's fast enough from my perspectiev.
 
@@ -104,7 +106,6 @@ Another good thing of this script is that it supports to read checksums.txt file
 Let's say you have scanned 10k files and saved in checksums.txt.
 
 Then you added another 10k files, as long as you're in the same path, it will skip calculating whatever already in checksums.txt.
-
 
 ## 📜 Commands and Usage
 
@@ -180,25 +181,35 @@ python get_rid_of_dup.py delete  --base-dir ./test ./others
 ## ⚙️ Common Arguments
 These arguments apply to all commands:
 
-- `--base-dir`: **(Required)** Base directory containing original files.
 - `--checksum-file`: File to save or read checksum data from (default: `checksums.txt`).
-- `--skip-existing`: Skip checksum calculations for already-processed files. (default: False).
-- `--no-skip-existing`: The opposite of `--skip-existing`.
-- `--max-width`: Maximum column width for displaying results (default: 128).
 - `--verbose`: Enable verbose output (default: False).
 - `--no-verbose`: The opposite of `--verbose`.
-- `--output-file`: Save duplicate files table to a file (default: dupfiles.txt).
-- `--print-table`: Print the duplicate files table to the console (default: False).
-- `--no-print-table`: The opposite of `--print-table`.
 
 ## Command-Specific Options:
-- `checksum`: 
-  - `--update-checksum-file`: Instruct to generate checksums file. Default filename is `checksums.txt`.
-- `delete`: 
+- `checksum`:
+  - `--base-checksum-file`: Use a pre-generated checksum file instead of scanning the base directory again.
+  - `--generate-checksum-only`: Generate checksums for a base directory without needing a target directory.
+
+- `delete`:
   - `--sleep-time`: Set delay between deletions (default: 1).
   - `--confirm`: Enable confirmation prompts (default: True).
   - `--no-confirm`: The opposite of `--confirm`
   - `--list-next`: Set number of files to preview before confirmation (default: 5).
+
+- `checksum` and `dedup`:
+  - `--update-checksum-file`: Instruct to generate checksums file. Default filename is `checksums.txt`.
+  - `--no-update-checksum-file`: The opposite of `--update-checksum-file`.
+
+- `search`, `checksum` and `dedup` because they invoked either `display_summary_single_dir` or `display_summary` and either `calculate_checksums` or `calculate_checksums_single_dir`:
+
+- `--base-dir`: **(Required)** Base directory containing original files.
+- `--exclude [EXCLUDE ...]`: Exclude files matching these patterns (e.g., "*.jpg", "a*.png"). Supports multiple patterns.
+- `--max-width`: Maximum column width for displaying results (default: 128).
+- `--print-table`: Print the duplicate files table to the console (default: False).
+- `--no-print-table`: The opposite of `--print-table`.
+- `--skip-existing`: Skip checksum calculations for already-processed files. (default: False).
+- `--no-skip-existing`: The opposite of `--skip-existing`.
+- `--output-file OUTPUT_FILE`: Save duplicate files table to a file (default: dupfiles.txt).
 
 ---
 
@@ -273,6 +284,12 @@ python get_rid_of_dup.py dedup --base-dir ./upload_to_apple_photo  --max-width 1
 - Use `--confirm` with `delete` to review files before removal.
 - The `--skip-existing` option speeds up processing for large datasets.
 - Enable `--verbose` for detailed progress logs.
+
+## 📋 TODO
+
+Under `checksum` command: 
+- `--base-dir` should not be needed when having `--base-checksum-file`.
+- `--exclude` is only being used in `search`, `checksum` and `dedup`. Because they invoked either `calculate_checksums` or `calculate_checksums_single_dir`
 
 ---
 
