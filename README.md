@@ -4,7 +4,9 @@
 
 This script has two modes:
 
-**Mode 1: Single Directory Duplicate Detection**
+**Mode 1: Single Directory Duplicate Deletion**
+
+This is only available in `dedup` command.
 
 In this mode, it will identify all duplicates within the same folder and ask confirmation to delete.
 
@@ -14,7 +16,7 @@ One command is enough:
 python get_rid_of_dup.py dedup --base-dir ./comp --max-width 50 --verbose --exclude "*.DS_Store"
 ```
 
-**Mode 2: Cross-Directory Duplicate Detection**
+**Mode 2: Cross-Directory Duplicate Detection and Deletion**
 
 As the name suggested, it takes two folders as input. Use one as the base directory, means all duplicates will come out from the other directory.
 
@@ -184,7 +186,7 @@ These arguments apply to all commands:
 ---
 
 ## 💡 Examples
-### Search for Duplicates Without Saving Checksums into File
+### *Mode 2:* Search for Duplicates Without Saving Checksums into File
 
 ```
 python get_rid_of_dup.py search --base-dir ./test ./others --max-width 50
@@ -202,7 +204,7 @@ python get_rid_of_dup.py search --base-dir ./test ./others --max-width 50 --verb
 
 ![search-basic-usage](asset/img/search-02-with-verbose.webp)
 
-### Search for Duplicates via Checksum and Save into File
+### *Mode 2:* Search for Duplicates and Save Checksum into File
 
 ```
 python get_rid_of_dup.py checksum --base-dir ./test ./others --max-width 50
@@ -218,7 +220,7 @@ python get_rid_of_dup.py checksum --no-update-checksum-file --base-dir ./test ./
 ![checksum-02-not-save-checksum-same-as-search-command](asset/img/checksum-02-not-save-checksum-same-as-search-command.webp)
 
 
-### Delete Duplicates with Confirmation
+### *Mode 2:* Delete Duplicates with Confirmation
 
 ```
 python get_rid_of_dup.py delete  --base-dir ./test ./others
@@ -235,10 +237,16 @@ python get_rid_of_dup.py delete  --base-dir ./test ./others
 ![delete-02](asset/img/delete-02.webp)
 
 
-### Skip Existing Checksums with Verbose Output
+### *Mode 2:* Skip Existing Checksums with Verbose Output
 
 ```
 python get_rid_of_dup.py checksum --base-dir /path/to/base_dir --skip-existing --verbose /path/to/other_dir
+```
+
+### *Mode 1:* Delete Duplicates identified from Single Directory
+
+```
+python get_rid_of_dup.py dedup --base-dir ./upload_to_apple_photo  --max-width 125 --verbose --exclude "*.DS_Store"
 ```
 
 ---
