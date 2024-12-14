@@ -202,14 +202,14 @@ These arguments apply to all commands:
 
 - `search`, `checksum` and `dedup` because they invoked either `display_summary_single_dir` or `display_summary` and either `calculate_checksums` or `calculate_checksums_single_dir`:
 
-- `--base-dir`: **(Required)** Base directory containing original files.
-- `--exclude [EXCLUDE ...]`: Exclude files matching these patterns (e.g., "*.jpg", "a*.png"). Supports multiple patterns.
-- `--max-width`: Maximum column width for displaying results (default: 128).
-- `--print-table`: Print the duplicate files table to the console (default: False).
-- `--no-print-table`: The opposite of `--print-table`.
-- `--skip-existing`: Skip checksum calculations for already-processed files. (default: False).
-- `--no-skip-existing`: The opposite of `--skip-existing`.
-- `--output-file OUTPUT_FILE`: Save duplicate files table to a file (default: dupfiles.txt).
+  - `--base-dir`: **(Required)** Base directory containing original files.
+  - `--exclude [EXCLUDE ...]`: Exclude files matching these patterns (e.g., "*.jpg", "a*.png"). Supports multiple patterns.
+  - `--max-width`: Maximum column width for displaying results (default: 128).
+  - `--print-table`: Print the duplicate files table to the console (default: False).
+  - `--no-print-table`: The opposite of `--print-table`.
+  - `--skip-existing`: Skip checksum calculations for already-processed files. (default: False).
+  - `--no-skip-existing`: The opposite of `--skip-existing`.
+  - `--output-file OUTPUT_FILE`: Save duplicate files table to a file (default: dupfiles.txt).
 
 ---
 
