@@ -78,16 +78,6 @@ Let's say you have scanned 10k files and saved in checksums.txt.
 
 Then you added another 10k files, as long as you're in the same path, it will skip calculating whatever already in checksums.txt.
 
-Below is my testing data:
-
-- When first time to scan, it took around 84.46s:
-![performance-01](asset/img/performance-01.webp)
-- When second time to scan without adding any new file, it took around 
-![performance-02](asset/img/performance-02.webp)
-- If I deleted most checksums from `checksums.txt`, it took around . And we can see it's calculating only the missing ones. So it did skip existing files which already have checksums in `checksums.txt`.
-![performance-03](asset/img/performance-03.webp)
-
-Please note: `--skip-existing` is off by default, you have to specify it manaully.
 
 ## 📜 Commands and Usage
 
