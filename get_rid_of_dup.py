@@ -1069,8 +1069,21 @@ def main():
     args = parse_arguments()
     base_dir = os.path.abspath(args.base_dir)
 
+    if not os.path.exists(base_dir):
+        print(colored(f"❌ Error: Base directory '{base_dir}' does not exist.", "red"))
+        return
+
     if args.command == "search" or args.command == "checksum":
         target_dir = os.path.abspath(args.path)
+
+        if not os.path.exists(target_dir):
+            print(
+                colored(
+                    f"❌ Error: Target directory '{target_dir}' does not exist.", "red"
+                )
+            )
+            return
+
         # Calculate checksums and find duplicates
         base_checksums, other_checksums, total_base_files, total_other_files = (
             calculate_checksums(
@@ -1120,6 +1133,15 @@ def main():
 
     elif args.command == "delete":
         target_dir = os.path.abspath(args.path)
+
+        if not os.path.exists(target_dir):
+            print(
+                colored(
+                    f"❌ Error: Target directory '{target_dir}' does not exist.", "red"
+                )
+            )
+            return
+
         # Load checksums from file
         base_checksums, other_checksums = load_checksums(args.checksum_file)
         duplicates, _, _ = summarize_duplicates(
