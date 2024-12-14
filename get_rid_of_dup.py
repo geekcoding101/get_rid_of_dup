@@ -23,6 +23,7 @@ import fnmatch
 import os
 import time
 from collections import defaultdict
+from datetime import datetime
 
 import xxhash
 from termcolor import colored
@@ -37,10 +38,10 @@ def parse_arguments():
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    # Common arguments
+    # Common arguments (no longer force --base-dir as required here)
     common_parser = argparse.ArgumentParser(add_help=False)
     common_parser.add_argument(
-        "--base-dir", required=True, help="Base directory containing files to process"
+        "--base-dir", help="Base directory containing files to process"
     )
     common_parser.add_argument(
         "--max-width",
@@ -121,7 +122,7 @@ def parse_arguments():
         parents=[common_parser],
         help="🔎 Search for duplicate files between two directories without saving checksum information",
     )
-    search_parser.add_argument("path", help="Path to search for duplicates")
+    search_parser.add_argument("path", help="Path to search for duplicates", nargs=1)
 
     # Subparser for the 'checksum' command
     checksum_parser = subparsers.add_parser(
@@ -129,7 +130,21 @@ def parse_arguments():
         parents=[common_parser],
         help="🧮 Calculate checksums, find duplicates between two directories, and save checksum information to a file",
     )
-    checksum_parser.add_argument("path", help="Path to scan for duplicates")
+
+    checksum_parser.add_argument(
+        "--base-checksum-file",
+        help="Use an existing checksum file for the base directory, skipping base directory scanning. This allows using the checksum file without needing the base directory to exist.",
+    )
+
+    checksum_parser.add_argument(
+        "--generate-checksum-only",
+        action="store_true",
+        default=False,
+        help="Generate a checksums file for the base directory only. No target directory required.",
+    )
+
+    # The path argument for checksum is now optional, depending on the mode
+    checksum_parser.add_argument("path", nargs="?", help="Path to scan for duplicates")
 
     # Mutually exclusive group for --update-checksum-file
     update_group = checksum_parser.add_mutually_exclusive_group()
@@ -281,8 +296,13 @@ def load_existing_checksums(checksum_file):
     existing_checksums = {"BASE": {}, "OTHER": {}}
     with open(checksum_file, "r") as f:
         for line in f:
-            category, checksum, path = line.strip().split("\t")
-            existing_checksums[category][path] = checksum
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("\t")
+            if len(parts) == 3:
+                category, checksum, path = parts
+                existing_checksums[category][path] = checksum
     return existing_checksums
 
 
@@ -353,7 +373,6 @@ def calculate_checksums(
         #   "<checksum1>": [ {"path": "file1", "abs_path": "/path/to/file1"} ],
         #   "<checksum2>": [ {"path": "file2", "abs_path": "/path/to/file2"}, {"path": "file3", "abs_path": "/path/to/file3"} ]
         # }
-
         other_checksums[checksum].append({"path": rel_path, "abs_path": abs_path})
 
     return base_checksums, other_checksums, total_base_files, total_other_files
@@ -369,8 +388,9 @@ def save_checksums(base_checksums, other_checksums, checksum_file):
             for checksum, info in base_checksums.items():
                 f.write(f"BASE\t{checksum}\t{info['path']}\n")
             # Save other checksums
-            for checksum, info in other_checksums.items():
-                f.write(f"OTHER\t{checksum}\t{info['path']}\n")
+            for checksum, infos in other_checksums.items():
+                for info in infos:
+                    f.write(f"OTHER\t{checksum}\t{info['path']}\n")
         print(colored(f"✅ Checksums saved to {checksum_file}", "green"))
     except Exception as e:
         print(colored(f"❌ Error saving checksums to {checksum_file}: {e}", "red"))
@@ -385,11 +405,16 @@ def load_checksums(checksum_file):
     try:
         with open(checksum_file, "r") as f:
             for line in f:
-                category, checksum, path = line.strip().split("\t")
-                if category == "BASE":
-                    base_checksums[checksum] = {"path": path}
-                elif category == "OTHER":
-                    other_checksums[checksum].append({"path": path})
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split("\t")
+                if len(parts) == 3:
+                    category, checksum, path = parts
+                    if category == "BASE":
+                        base_checksums[checksum] = {"path": path}
+                    elif category == "OTHER":
+                        other_checksums[checksum].append({"path": path})
     except Exception as e:
         print(
             colored(
@@ -516,7 +541,6 @@ def delete_duplicates(duplicates, base_dir, other_dir, sleep_time, confirm, list
     total_files = len(files_to_delete)
     print(f"\n🗑️  Total duplicate files to delete: {total_files}")
 
-    # If confirmation is enabled
     if confirm:
         sleep_time = 0  # Omit sleep-time if confirmation is needed
         print(colored("⚠️  Confirmation is enabled. Sleep time is set to 0.", "yellow"))
@@ -638,6 +662,14 @@ def delete_duplicates(duplicates, base_dir, other_dir, sleep_time, confirm, list
                         print(colored(f"⚠️  File not found: {duplicate_path}", "yellow"))
                 skip_count = 0
     else:
+        print(colored(f"⏳ Sleep time between deletions: {sleep_time} seconds", "blue"))
+        if list_next:
+            print(
+                colored(
+                    "⚠️  Warning: --list-next is specified but will be ignored as it's only used in confirmation enabled mode.",
+                    "yellow",
+                )
+            )
         # If sleep_time is 0, give a warning and wait for confirmation
         if sleep_time == 0:
             print(
@@ -765,8 +797,13 @@ def load_existing_checksums_single_dir(checksum_file):
     existing_checksums = {}
     with open(checksum_file, "r") as f:
         for line in f:
-            checksum, path = line.strip().split("\t")
-            existing_checksums[path] = checksum
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("\t")
+            if len(parts) == 2:
+                checksum, path = parts
+                existing_checksums[path] = checksum
     return existing_checksums
 
 
@@ -1025,6 +1062,12 @@ def delete_duplicates_single_dir(duplicates, directory, sleep_time, confirm, lis
             if confirm_input.lower() != "yes":
                 print("Operation cancelled by user.")
                 return
+        else:
+            print(
+                colored(
+                    f"⏳ Sleep time between deletions: {sleep_time} seconds", "blue"
+                )
+            )
 
         # Process deletions without confirmation
         for idx, item in enumerate(files_to_delete, start=1):
@@ -1073,14 +1116,26 @@ def main():
     Main function to orchestrate the script's functionality.
     """
     args = parse_arguments()
-    base_dir = os.path.abspath(args.base_dir)
 
-    if not os.path.exists(base_dir):
-        print(colored(f"❌ Error: Base directory '{base_dir}' does not exist.", "red"))
-        return
+    if args.command == "search":
+        if not args.base_dir:
+            print(
+                colored("❌ Error: --base-dir is required for search command.", "red")
+            )
+            return
 
-    if args.command == "search" or args.command == "checksum":
-        target_dir = os.path.abspath(args.path)
+        base_dir = os.path.abspath(args.base_dir)
+        if not os.path.exists(base_dir):
+            print(
+                colored(f"❌ Error: Base directory '{base_dir}' does not exist.", "red")
+            )
+            return
+
+        if not args.path or len(args.path) == 0:
+            print(colored("❌ Error: path is required for search command.", "red"))
+            return
+
+        target_dir = os.path.abspath(args.path[0])
 
         if not os.path.exists(target_dir):
             print(
@@ -1104,26 +1159,13 @@ def main():
 
         duplicates, _, _ = summarize_duplicates(base_checksums, other_checksums)
 
-        if args.command == "checksum":
-            if args.update_checksum_file:
-                # Save checksums to file
-                save_checksums(base_checksums, other_checksums, args.checksum_file)
-            else:
-                print(
-                    colored(
-                        "\n⚠️  Note: Checksums are not saved because '--no-update-checksum-file' was specified.",
-                        "yellow",
-                    )
-                )
-        else:
-            print(
-                colored(
-                    "\n⚠️  Note: Checksums are not saved because '--update-checksum-file' only available under 'checksum' command.",
-                    "yellow",
-                )
+        print(
+            colored(
+                "\n⚠️  Note: Checksums are not saved because '--update-checksum-file' only available under 'checksum' command.",
+                "yellow",
             )
+        )
 
-        # Display summary
         display_summary(
             duplicates,
             base_dir,
@@ -1135,9 +1177,268 @@ def main():
             args.print_table,
         )
 
-    elif args.command == "delete":
-        target_dir = os.path.abspath(args.path)
+    elif args.command == "checksum":
+        # Handle generate-checksum-only mode
+        if args.generate_checksum_only:
+            # In this mode, we just generate checksums for base_dir only, no target dir
+            if not args.base_dir:
+                print(
+                    colored(
+                        "❌ Error: --base-dir is required when using --generate-checksum-only.",
+                        "red",
+                    )
+                )
+                return
 
+            base_dir = os.path.abspath(args.base_dir)
+
+            if not os.path.exists(base_dir):
+                print(
+                    colored(
+                        f"❌ Error: Base directory '{base_dir}' does not exist.", "red"
+                    )
+                )
+                return
+
+            # If generate_checksum_only specified and checksum_file NOT specified, we will generate a different name for checksum_file
+            # So it will not conflict with default one checksums.txt.
+            # Because when usually generate_checksum_only is specified, we just want to generate the checksum and save in a file,
+            # The file will be used in future for like "base-checksum-file", in that case, no need to have the original files in base
+            # Because the script will directly read the checksum saved in the file.
+            if args.checksum_file == "checksums.txt":
+                base_dir_name = os.path.basename(base_dir.rstrip("/\\"))
+                timestamp = datetime.now().strftime("%m%d%Y-%H%M%S")
+                args.checksum_file = f"checksums-for-{base_dir_name}-{timestamp}.txt"
+
+            # Calculate checksums for base_dir
+            base_files = get_all_files(base_dir, args.exclude)
+            total_base_files = len(base_files)
+            print(
+                f"📁 Processing files in base directory '{base_dir}': {total_base_files}"
+            )
+
+            base_checksums = {}
+            for idx, file_path in enumerate(base_files, start=1):
+                rel_path = os.path.relpath(file_path, base_dir)
+                abs_path = os.path.abspath(file_path)
+                if args.verbose:
+                    print(f"⏳ Processing base ({idx}/{total_base_files}): {abs_path}")
+                checksum = compute_xxhash64(file_path)
+                base_checksums[checksum] = {"path": rel_path, "abs_path": abs_path}
+
+            # No OTHER checksums when specified generate_checksum_only, just save BASE
+            other_checksums = defaultdict(list)
+            if args.update_checksum_file:
+                # Save checksums to file
+                save_checksums(base_checksums, other_checksums, args.checksum_file)
+            else:
+                print(
+                    colored(
+                        "\n⚠️  Note: Checksums are not saved because '--no-update-checksum-file' was specified.",
+                        "yellow",
+                    )
+                )
+
+            # Display a summary (no duplicates since no other dir)
+            print(
+                colored(
+                    f"\n✅ Total files in base directory '{base_dir}': {total_base_files}",
+                    "green",
+                )
+            )
+            print(colored("⚠️  Total duplicate files found: 0", "yellow"))
+            print(
+                colored(
+                    f"📁 Total unique files in '{base_dir}': {total_base_files}",
+                    "green",
+                )
+            )
+            print(colored("🎉 No duplicates identified.", "green"))
+            return
+
+        # If not generate-checksum-only
+        # We have two modes:
+        # 1. If --base-checksum-file is provided, we skip base_dir scanning
+        # 2. Else, we need base_dir and path
+
+        if args.base_checksum_file:
+            # Load base checksums from file
+            base_path_for_load = args.base_checksum_file
+            if not os.path.exists(base_path_for_load):
+                print(
+                    colored(
+                        f"❌ Error: Base checksum file '{base_path_for_load}' does not exist.",
+                        "red",
+                    )
+                )
+                return
+
+            base_checksums_loaded, other_checksums_loaded = load_checksums(
+                base_path_for_load
+            )
+            # base_checksums_loaded: dict of {checksum: {"path":...}}
+            # We'll treat these as our base checksums
+            base_checksums = base_checksums_loaded
+            if not args.path:
+                print(
+                    colored(
+                        "❌ Error: 'path' is required when using --base-checksum-file to find duplicates in another directory.",
+                        "red",
+                    )
+                )
+                return
+            target_dir = os.path.abspath(args.path)
+            if not os.path.exists(target_dir):
+                print(
+                    colored(
+                        f"❌ Error: Target directory '{target_dir}' does not exist.",
+                        "red",
+                    )
+                )
+                return
+
+            # Calculate checksums for target_dir only
+            other_checksums = defaultdict(list)
+            other_files = get_all_files(target_dir, args.exclude)
+            total_other_files = len(other_files)
+            total_base_files = len(base_checksums)
+            print(
+                f"\n📁 Processing files in other directory '{target_dir}': {total_other_files}"
+            )
+
+            for idx, file_path in enumerate(other_files, start=1):
+                rel_path = os.path.relpath(file_path, target_dir)
+                abs_path = os.path.abspath(file_path)
+                if args.skip_existing and any(
+                    rel_path == v["path"]
+                    for val in other_checksums_loaded.values()
+                    for v in val
+                ):
+                    # If skip_existing was intended to apply here, we could handle it, but we have no OTHER from base file
+                    pass
+                if args.verbose:
+                    print(
+                        f"⏳ Processing other ({idx}/{total_other_files}): {abs_path}"
+                    )
+                checksum = compute_xxhash64(file_path)
+                other_checksums[checksum].append(
+                    {"path": rel_path, "abs_path": abs_path}
+                )
+
+            duplicates, _, _ = summarize_duplicates(base_checksums, other_checksums)
+
+            if args.update_checksum_file:
+                # Save combined checksums
+                # Note: base_checksums already loaded from file, now we combine them
+                # That would overwrite base info. To preserve, re-save them.
+                # We have only base_checksums (dict) and other_checksums (list), no harm in overwriting the file
+                save_checksums(base_checksums, other_checksums, args.checksum_file)
+            else:
+                print(
+                    colored(
+                        "\n⚠️  Note: Checksums are not saved because '--no-update-checksum-file' was specified.",
+                        "yellow",
+                    )
+                )
+
+            display_summary(
+                duplicates,
+                "BASE_FROM_FILE",
+                target_dir,
+                len(base_checksums),
+                total_other_files,
+                args.max_width,
+                args.output_file,
+                args.print_table,
+            )
+            return
+        else:
+            # Normal mode: need base_dir and path
+            if not args.base_dir:
+                print(
+                    colored(
+                        "❌ Error: --base-dir is required unless --base-checksum-file is provided.",
+                        "red",
+                    )
+                )
+                return
+
+            base_dir = os.path.abspath(args.base_dir)
+            if not os.path.exists(base_dir):
+                print(
+                    colored(
+                        f"❌ Error: Base directory '{base_dir}' does not exist.", "red"
+                    )
+                )
+                return
+
+            if not args.path:
+                print(
+                    colored(
+                        "❌ Error: 'path' is required for the checksum command (when not using --generate-checksum-only or --base-checksum-file).",
+                        "red",
+                    )
+                )
+                return
+
+            target_dir = os.path.abspath(args.path)
+            if not os.path.exists(target_dir):
+                print(
+                    colored(
+                        f"❌ Error: Target directory '{target_dir}' does not exist.",
+                        "red",
+                    )
+                )
+                return
+
+            base_checksums, other_checksums, total_base_files, total_other_files = (
+                calculate_checksums(
+                    base_dir,
+                    target_dir,
+                    args.checksum_file,
+                    args.skip_existing,
+                    args.verbose,
+                    args.exclude,
+                )
+            )
+
+            duplicates, _, _ = summarize_duplicates(base_checksums, other_checksums)
+
+            if args.update_checksum_file:
+                save_checksums(base_checksums, other_checksums, args.checksum_file)
+            else:
+                print(
+                    colored(
+                        "\n⚠️  Note: Checksums are not saved because '--no-update-checksum-file' was specified.",
+                        "yellow",
+                    )
+                )
+
+            display_summary(
+                duplicates,
+                base_dir,
+                target_dir,
+                total_base_files,
+                total_other_files,
+                args.max_width,
+                args.output_file,
+                args.print_table,
+            )
+
+    elif args.command == "delete":
+        if not args.base_dir:
+            print(
+                colored("❌ Error: --base-dir is required for delete command.", "red")
+            )
+            return
+        base_dir = os.path.abspath(args.base_dir)
+        if not os.path.exists(base_dir):
+            print(
+                colored(f"❌ Error: Base directory '{base_dir}' does not exist.", "red")
+            )
+            return
+
+        target_dir = os.path.abspath(args.path)
         if not os.path.exists(target_dir):
             print(
                 colored(
@@ -1148,11 +1449,7 @@ def main():
 
         # Load checksums from file
         base_checksums, other_checksums = load_checksums(args.checksum_file)
-        duplicates, _, _ = summarize_duplicates(
-            base_checksums, other_checksums, base_dir, target_dir
-        )
-
-        # Delete duplicates
+        duplicates, _, _ = summarize_duplicates(base_checksums, other_checksums)
         delete_duplicates(
             duplicates,
             base_dir,
@@ -1163,7 +1460,15 @@ def main():
         )
 
     elif args.command == "dedup":
-        # Calculate checksums and find duplicates within base_dir
+        if not args.base_dir:
+            print(colored("❌ Error: --base-dir is required for dedup command.", "red"))
+            return
+        base_dir = os.path.abspath(args.base_dir)
+
+        if not os.path.exists(base_dir):
+            print(colored(f"❌ Error: Directory '{base_dir}' does not exist.", "red"))
+            return
+
         checksums, total_files = calculate_checksums_single_dir(
             base_dir,
             args.checksum_file,
