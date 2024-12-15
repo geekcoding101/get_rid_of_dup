@@ -68,9 +68,10 @@ python get_rid_of_dup.py delete  --base-dir ./test ./others --no-confirm --sleep
 
 Essentially, both modes are doing the same thing as below:
 
-- **`search`**: Locate duplicate files without saving checksum information. This is usually for quick test.
+- **`search`**: Locate duplicate files *WITHOUT* saving checksum information. This is usually for quick test.
 - **`checksum`**: Everything in `search`, plus saving checksums into file. This is the first step in **Mode 2: Cross-Directory Duplicate Detection**.
 - **`delete`**: Remove duplicate files based on checksum data (Default reading from checksums.txt). This is the second step in **Mode 2: Cross-Directory Duplicate Detection**.
+- **`dedup`**: Remove duplicate files from the single directory. This is the **Mode 1: Single Directory Duplicate Deletion**.
 
 ---
 
