@@ -191,10 +191,12 @@ These arguments apply to all commands:
   - `--generate-checksum-only`: Generate checksums for a base directory without needing a target directory.
 
 - `delete`:
+
+- `delete` and `dedup`:
+  - `--list-next`: Set number of files to preview before confirmation (default: 5).
   - `--sleep-time`: Set delay between deletions (default: 1).
   - `--confirm`: Enable confirmation prompts (default: True).
   - `--no-confirm`: The opposite of `--confirm`
-  - `--list-next`: Set number of files to preview before confirmation (default: 5).
 
 - `checksum` and `dedup`:
   - `--update-checksum-file`: Instruct to generate checksums file. Default filename is `checksums.txt`.
